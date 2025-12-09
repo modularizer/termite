@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modularizer-termite"
+version = "0.1.0"
+description = "Terminal manipulation utilities for Python applications, including ANSI color codes, cursor control, text styling, and interactive output formatting"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Torin Halsted", email = "modularizer@gmail.com"}
+]
+keywords = ["terminal", "ansi", "colors", "cursor", "cli", "tui"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Terminals",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://github.com/modularizer/termite"
+Repository = "https://github.com/modularizer/termite"
+Issues = "https://github.com/modularizer/termite/issues"
+
+[project.scripts]
+termite = "termite.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+termite = ["py.typed"]
+
