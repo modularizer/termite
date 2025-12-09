@@ -105,8 +105,8 @@ class Token(Node):
         self.end = None
 
 
-    def open(self, end=R.RESET):
-        node = self.set("(")
+    def open(self, end=R.RESET, opener="("):
+        node = self.set(opener)
         node.opened = True
         node.called = True
         node.value = self.value
@@ -135,42 +135,42 @@ class EndToken:
     def __repr__(self):
         return f"EndToken<{self.value!r}>" if self.value is not None else f"EndToken<)>"
 
-def sub(text: str, open="", close="", esc="%"):
+def sub(text: str, color_prefix="", color_suffix="", opener="(", closer=")", joiner="+", esc="%", esc_end=""):
     root = Token()
     for k in color_keys:
-        node = root.set(open + k + close)
+        node = root.set(color_prefix + k + color_suffix)
         node.value = color_values[k]
-        node.open()
+        node.open(opener=opener)
 
     for k in cursor_actions:
-        node = root.set(open + k + close)
+        node = root.set(color_prefix + k + color_suffix)
         node.value = cursor_actions[k]
 
     for k in cursor_function_keys:
-        node = root.set(open + k + close)
+        node = root.set(color_prefix + k + color_suffix)
         node.open(cursor_functions[k])
-    root.set(open + "rgb" + close).open().value = "rgb("
-    root.set(open + "bgrgb" + close).open().value = "bgrgb("
-    root.set(open + "rgba" + close).open().value = "rgba("
-    root.set(open + "bgrgba" + close).open().value = "bgrgba("
+    root.set(color_prefix + "rgb" + color_suffix).open(opener=opener).value = "rgb" + opener
+    root.set(color_prefix + "bgrgb" + color_suffix).open(opener=opener).value = "bgrgb" + opener
+    root.set(color_prefix + "rgba" + color_suffix).open(opener=opener).value = "rgba" + opener
+    root.set(color_prefix + "bgrgba" + color_suffix).open(opener=opener).value = "bgrgba" + opener
 
     tokens = [root.clone()] # list of Token or str
     escaped = False
     for ch in (text + "x"):
         last_node = tokens[-1]
-        pre = last_node.prefix
-        full = last_node.full_text
-        if ch == esc and not escaped:
-            escaped = True
-        elif escaped:
-            tokens[-1] = last_node[ch]
-        elif ch == "+" and last_node.value:
+        if ch == esc_end and escaped:
+            escaped = False
             continue
-        elif ch == ")":
+        elif ch == esc and not escaped:
+            escaped = True
+            continue
+        elif not escaped and ch == joiner and last_node.value:
+            continue
+        elif not escaped and ch == closer:
             for tk in reversed(tokens):
                 if tk.opened:
                     px = tk.value
-                    if px in ["rgba(", "rgb(", "bgrgb(", "bgrgba("]:
+                    if px in ["rgba" + opener, "rgb" + opener, "bgrgb" + opener, "bgrgba" + opener]:
                         s = tokens[-1].full_text
                         n = s.count(",")
                         T = BG_RGB if px.startswith("bg") else FG_RGB
@@ -205,15 +205,10 @@ def sub(text: str, open="", close="", esc="%"):
                         tokens.append(root.clone())
                     break
             else:
-                tokens[-1] = last_node[")"]
+                tokens[-1] = last_node[closer]
 
-        # elif ch == "(" and last_node.children.get("("):
-        #     existing = tokens
-        #     pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
-        #     pp = pre_prefix
-        #     tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node, root.clone()]
         else:
-            opening = ch == "(" and last_node.children.get("(")
+            opening = ch == opener and last_node.children.get(opener) and not escaped
             node = last_node[ch]
             if not node.prefix and last_node.value:
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
@@ -225,6 +220,9 @@ def sub(text: str, open="", close="", esc="%"):
             else:
                 node.full_text = ""
                 node.prefix = ""
+
+        if escaped and not esc_end:
+            escaped = False
 
     content: list[str | TerminalCode | tuple[list, Callable]] = []
     all_levels = [content]
@@ -315,13 +313,8 @@ def sub(text: str, open="", close="", esc="%"):
 
 
 
-
-
-
-
-
-def demo(text: str, open="", close="", esc="%"):
-    r = sub(text, open=open, close=close, esc=esc)
+def demo(text: str, color_prefix="", color_suffix="", opener="(", closer=")", joiner="+", esc="%", esc_end=""):
+    r = sub(text, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end)
     print(f"Input:  {text!r}")
     print(f"Output: {r!r}")
     print(f"Result: {r}")
@@ -342,8 +335,8 @@ def _resolve_file(file):
     # Already a file object
     return file
 
-def subprint(*text: str, open="", close="", esc="%", raw=False, print=print, **kwargs):
-    parts = [sub(t, open=open, close=close, esc=esc) for t in text]
+def subprint(*text: str, color_prefix="", color_suffix="", opener="(", closer=")", joiner="+", esc="%", esc_end="", raw=False, print=print, **kwargs):
+    parts = [sub(t, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end) for t in text]
     # Handle special file values
     if "file" in kwargs:
         kwargs["file"] = _resolve_file(kwargs["file"])
@@ -357,20 +350,20 @@ def subprint(*text: str, open="", close="", esc="%", raw=False, print=print, **k
 
 if __name__ == "__main__":
     print("=== Sample 1: Simple substitution (no parentheses) ===")
-    demo("Hello TMGREENworldTMRESET!", open="TM")
+    demo("Hello TMGREENworldTMRESET!", color_prefix="TM")
 
 
     print("=== Sample 2: Function call with parentheses ===")
-    demo("GREEN(hello world)", open="")
+    demo("GREEN(hello world)", color_prefix="")
 
     print("=== Sample 3: Merged keys (BOLDGREEN) ===")
-    demo("BOLDGREEN(bold green text)", open="")
+    demo("BOLDGREEN(bold green text)", color_prefix="")
 
     print("=== Sample 3b: More merged keys ===")
-    demo("REDBOLD(red and bold) BLUEITALIC(blue and italic)", open="")
+    demo("REDBOLD(red and bold) BLUEITALIC(blue and italic)", color_prefix="")
 
     print("=== Sample 3c: Nested merged keys ===")
-    demo("BOLDGREEN(REDBOLD(nested merged))", open="")
+    demo("BOLDGREEN(REDBOLD(nested merged))", color_prefix="")
 
     print("=== Sample 4: Multiple nested levels ===")
     demo("RED(BOLD(UNDERLINE(triple nested)))")
@@ -400,17 +393,25 @@ if __name__ == "__main__":
     demo("bgrgb(#00FF00)(background green)")
 
     print("=== Sample 13: Merged colors (BLUERED) ===")
-    demo("BLUE+RED(merged blue and red)", open="")
+    demo("BLUE+RED(merged blue and red)", color_prefix="")
 
     print("=== Sample 14: More color merges ===")
-    demo("GREEN+YELLOW(green+yellow) RED+BLUE(red+blue)", open="")
+    demo("GREEN+YELLOW(green+yellow) RED+BLUE(red+blue)", color_prefix="")
 
     print("=== Sample 15: Stacked keys (BOLDITALICREDBLUE) ===")
-    demo("BOLD+ITALIC+RED+BLUE(bold italic merged red+blue)", open="")
+    demo("BOLD+ITALIC+RED+BLUE(bold italic merged red+blue)", color_prefix="")
 
     print("=== Sample 16: Multiple stacked styles and colors ===")
-    demo("BOLD+UNDERLINE+GREEN+YELLOW(bold underline green+yellow)", open="")
+    demo("BOLD+UNDERLINE+GREEN+YELLOW(bold underline green+yellow)", color_prefix="")
 
     print("=== Sample 17: Shortened aliases (B, I, U) ===")
-    demo("BOLD(bold) ITALIC(italic) UNDERLINE(underline) STRIKETHROUGH(strikethrough)", open="")
+    demo("BOLD(bold) ITALIC(italic) UNDERLINE(underline) STRIKETHROUGH(strikethrough)", color_prefix="")
+
+    print("=== Sample 18: Shortened aliases (B, I, U) ===")
+    demo("[BOLD]<bold> [ITALIC]<italic> [UNDERLINE]<underline> [STRIKETHROUGH]<strikethrough>",
+         color_prefix="[", color_suffix="]", opener="<", closer=">")
+
+    print("=== Sample 19: Shortened aliases (B, I, U) ===")
+    demo("BOLD<bold> ITALIC<italic> UNDERLINE<underline> STRIKETHROUGH<strikethrough>",
+         opener="<", closer=">")
 

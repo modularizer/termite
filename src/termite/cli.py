@@ -4,9 +4,12 @@ Termite CLI - Command-line interface for terminal formatting.
 """
 
 import argparse
-from termite.sub import sub, _resolve_file
+from termite.sub import sub, _resolve_file, subprint
 
-def main():
+def raw():
+    return main(raw=True)
+
+def main(raw=False):
     parser = argparse.ArgumentParser(
         description="Apply terminal formatting (colors, styles, cursor control) to text",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -26,33 +29,44 @@ Examples:
         nargs="+",
         help="Text to format (supports patterns like RED(text), BOLD(text), etc.)"
     )
+
     
     parser.add_argument(
-        "--name",
-        "-n",
-        default="",
-        help="Prefix for keys (default: empty string)"
-    )
-    
-    parser.add_argument(
-        "--esc",
+        "-e", "--esc",
         default="%",
-        help="Escape start delimiter (default: %%)"
+        help="Escape start delimiter (default: %)"
     )
-    
+
     parser.add_argument(
-        "--esc2",
-        default=None,
-        help="Escape end delimiter (default: same as --esc)"
+        "-ee", "--esc-end",
+        default="",
+        help="Escape end delimiter (default: '')"
     )
-    
-    # Print function kwargs
     parser.add_argument(
-        "--sep",
-        default=" ",
-        help="Separator between text arguments (default: space)"
+        "-p", "--prefix",
+        default="",
+        help="Color name start char (default: '')"
     )
-    
+    parser.add_argument(
+        "-s", "--suffix",
+        default="",
+        help="Color name end char (default: '')"
+    )
+    parser.add_argument(
+        "-o", "--opener",
+        default="(",
+        help="Group start char (default: '(')"
+    )
+    parser.add_argument(
+        "-c", "--closer",
+        default=")",
+        help="Group end char (default: ')')"
+    )
+    parser.add_argument(
+        "-j", "--joiner",
+        default="+",
+        help="Style join char (default: '+')"
+    )
     parser.add_argument(
         "--end",
         default="\n",
@@ -75,39 +89,41 @@ Examples:
     parser.add_argument(
         "--raw",
         action="store_true",
+        default=raw,
         help="Print raw ANSI escape codes instead of applying formatting"
+    )
+
+    parser.add_argument(
+        "--pretty",
+        action="store_false",
+        dest="raw",
+        default=not raw,
+        help="Apply the formatting"
     )
     
     args = parser.parse_args()
     
     # Prepare kwargs for sub()
-    sub_kwargs = {
-        "name": args.name,
+    kw = {
+        "color_prefix": args.prefix,
+        "color_suffix": args.suffix,
+        "opener": args.opener,
+        "closer": args.closer,
+        "joiner": args.joiner,
         "esc": args.esc,
-        "esc2": args.esc2,
+        "esc_end": args.esc_end,
+
+        "end": args.end,
+        "file": args.file,
+        "flush": args.flush,
+
+        "raw": args.raw
     }
     
     # Process each text argument through sub()
-    processed_texts = [sub(text, **sub_kwargs) for text in args.text]
+    subprint(" ".join(args.text), **kw)
     
-    # Resolve special file values
-    output_file = _resolve_file(args.file)
-    
-    # Prepare kwargs for print()
-    print_kwargs = {
-        "sep": args.sep,
-        "end": args.end,
-        "file": output_file,
-        "flush": args.flush,
-    }
-    
-    # Print the processed text
-    if args.raw:
-        # Print raw escape codes (repr format)
-        raw_texts = [repr(text) for text in processed_texts]
-        print(*raw_texts, **print_kwargs)
-    else:
-        print(*processed_texts, **print_kwargs)
+
 
 if __name__ == "__main__":
     main()

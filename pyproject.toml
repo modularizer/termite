@@ -35,6 +35,8 @@ Issues = "https://github.com/modularizer/termite/issues"
 
 [project.scripts]
 termite = "termite.cli:main"
+termiter = "termite.cli:raw"
+termite-raw = "termite.cli:raw"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
