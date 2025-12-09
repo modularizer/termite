@@ -85,7 +85,7 @@ STRIKETHROUGH = "\033[9m"
 
 
 FG_RGB_HEADER = "\033[38;2;"
-BG_RGB_HEADER = "\033[38;2;"
+BG_RGB_HEADER = "\033[48;2;"
 def FG_RGB(r: int, g: int, b: int):
     return f"{FG_RGB_HEADER}{r};{g};{b}m"
 

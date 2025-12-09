@@ -361,7 +361,7 @@ def get_style(style: list[str] | str | None = None):
     return s
 
 
-def merge_colors(color1: str | TerminalCode, color2: str | TerminalCode, group: str = "fg") -> TerminalCode | None:
+def merge_colors(color1: str | TerminalCode, color2: str | TerminalCode, group: str = "fg") -> TerminalCode:
     """
     Merge two colors by averaging their RGB values.
     
@@ -376,14 +376,14 @@ def merge_colors(color1: str | TerminalCode, color2: str | TerminalCode, group: 
     # Retrieve TerminalCode instances
     tc1 = color1 if isinstance(color1, TerminalCode) else TerminalCode.retrieve(color1, group)
     tc2 = color2 if isinstance(color2, TerminalCode) else TerminalCode.retrieve(color2, group)
-    
+
     # Both must be valid colors with RGB values
     if not tc1 or not tc2:
-        return None
-    
+        raise Exception(f"Invalid colors: {tc1!r}, {tc2!r}")
+
     if not tc1.rgb or not tc2.rgb:
-        return None
-    
+        raise Exception(f"Invalid rgbs: {tc1.rgb}, {tc2.rgb}")
+
     # Average the RGB values
     r1, g1, b1 = tc1.rgb
     r2, g2, b2 = tc2.rgb
@@ -507,8 +507,9 @@ class FancyText:
         s = get_style(item)
         if s:
             return s
-        if item.startswith("bg_"):
-            return TerminalCode.retrieve(item[3:], "bg") or BGRGBTerminalCode(item[3:])
+        name = TerminalCode.normname(item)
+        if name.startswith("bg"):
+            return TerminalCode.retrieve(name[2:], "bg") or BGRGBTerminalCode(name[2:])
         return TerminalCode.retrieve(item, "fg") or FGRGBTerminalCode(item)
 
     def __iter__(self):
