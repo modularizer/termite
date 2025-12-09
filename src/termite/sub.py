@@ -1,7 +1,3 @@
-"""
-Clean, simple implementation of the sub function following 7 clear steps.
-"""
-import re
 from collections.abc import Callable
 
 import termite.raw as R
@@ -9,6 +5,14 @@ import termite.colors as C
 import termite.cursor as cursor
 from termite.colors import to_rgb, TerminalCode, merge_colors
 from termite.raw import FG_RGB, BG_RGB
+
+OPENER="["
+CLOSER="]"
+PREFIX=""
+SUFFIX=""
+JOINER="+"
+ESC="%"
+ESC_END=""
 
 
 
@@ -105,7 +109,7 @@ class Token(Node):
         self.end = None
 
 
-    def open(self, end=R.RESET, opener="("):
+    def open(self, end=R.RESET, opener=OPENER):
         node = self.set(opener)
         node.opened = True
         node.called = True
@@ -135,7 +139,7 @@ class EndToken:
     def __repr__(self):
         return f"EndToken<{self.value!r}>" if self.value is not None else f"EndToken<)>"
 
-def sub(text: str, color_prefix="", color_suffix="", opener="(", closer=")", joiner="+", esc="%", esc_end=""):
+def sub(text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, closer=CLOSER, joiner=JOINER, esc=ESC, esc_end=ESC_END):
     root = Token()
     for k in color_keys:
         node = root.set(color_prefix + k + color_suffix)
@@ -313,7 +317,7 @@ def sub(text: str, color_prefix="", color_suffix="", opener="(", closer=")", joi
 
 
 
-def demo(text: str, color_prefix="", color_suffix="", opener="(", closer=")", joiner="+", esc="%", esc_end=""):
+def demo(text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, closer=CLOSER, joiner=JOINER, esc=ESC, esc_end=ESC_END):
     r = sub(text, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end)
     print(f"Input:  {text!r}")
     print(f"Output: {r!r}")
@@ -335,7 +339,7 @@ def _resolve_file(file):
     # Already a file object
     return file
 
-def subprint(*text: str, color_prefix="", color_suffix="", opener="(", closer=")", joiner="+", esc="%", esc_end="", raw=False, print=print, **kwargs):
+def subprint(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, closer=CLOSER, joiner=JOINER, esc=ESC, esc_end=ESC_END, raw=False, print=print, **kwargs):
     parts = [sub(t, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end) for t in text]
     # Handle special file values
     if "file" in kwargs:
