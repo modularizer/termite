@@ -3,18 +3,26 @@ import sys
 from termite.colors import colors, BG_BRIGHT_BLACK, RESET
 from termite.chars import BACKSPACE
 import termite.cursor  as cursor
+from termite.sub import sub as substitute
+
+complete = lambda t: cursor.write_ahead(colors.GRAY(t))
 
 
 global_state = {}
-def print_with_suggestion(pre: str = "", post: str="",
-                          overwrite: bool = True,
-                          overwrite_line_count: int | None = None,
-                          file=sys.stdout, end="", # kwargs to pass to print
-                          print=print, # by default, use the print builtin, but allow overriding
-                          state: dict | None = global_state, # this is INTENTIONALLY mutable
-                          ):
+def cprint(*pre: str,
+          completion: str="",
+          overwrite: bool = True,
+          overwrite_line_count: int | None = None,
+          file=sys.stdout,
+           end="", # kwargs to pass to print
+          print=print, # by default, use the print builtin, but allow overriding
+          state: dict | None = global_state, # this is INTENTIONALLY mutable
+          sub: bool = False,
+           **kw,
+          ):
+    post = completion
     post = post or ""
-    pre = pre or ""
+    pre = "".join(pre)
     state = state if state is not None else {}
     # first, clear the old content if we are overwriting
     if overwrite and (overwrite_line_count is None or overwrite_line_count > 0):
@@ -40,12 +48,16 @@ def print_with_suggestion(pre: str = "", post: str="",
     prefix_stays = pre[:-backspace_count] if backspace_count > 0 else pre
     prefix_replaced = pre[-backspace_count:] if backspace_count > 0 else ""
     replaced_highlight = colors.bg.white(prefix_replaced) if prefix_replaced else ""
-    completion = cursor.write_ahead(colors.gray(post)) if post else ""
+    completion = complete(post) if post else ""
 
     before_cursor = f"{prefix_stays}{replaced_highlight}"
     if before_cursor:
+        if sub:
+            before_cursor = substitute(before_cursor, **kw)
         print(before_cursor, end="", flush=True, file=file)
     if completion:
+        if sub:
+            completion = substitute(completion, **kw)
         print(completion, end="", flush=True, file=file)
     t = before_cursor + completion
     state["old"] = t

@@ -52,7 +52,8 @@ cursor_functions = {
     "UP": cursor.up,
     "DOWN": cursor.down,
     "WRITEAHEAD": cursor.write_ahead,
-    "WA": cursor.write_ahead
+    "WA": cursor.write_ahead,
+    "COMPLETION": lambda t: cursor.write_ahead(C.GRAY(t))
 }
 cursor_function_keys = list(sorted(list(cursor_functions.keys()), key=len, reverse=True))
 
@@ -139,7 +140,8 @@ class EndToken:
     def __repr__(self):
         return f"EndToken<{self.value!r}>" if self.value is not None else f"EndToken<)>"
 
-def sub(text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, closer=CLOSER, joiner=JOINER, esc=ESC, esc_end=ESC_END):
+def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, closer=CLOSER, joiner=JOINER, esc=ESC, esc_end=ESC_END, raw=False):
+    text = "".join(text)
     root = Token()
     for k in color_keys:
         node = root.set(color_prefix + k + color_suffix)
@@ -312,8 +314,10 @@ def sub(text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clos
         return s
 
     items = all_levels[0]
-    return resolve(items)[:-1]
-
+    s = resolve(items)[:-1]
+    if raw:
+        return repr(s)
+    return s
 
 
 
@@ -340,17 +344,12 @@ def _resolve_file(file):
     return file
 
 def subprint(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, closer=CLOSER, joiner=JOINER, esc=ESC, esc_end=ESC_END, raw=False, print=print, **kwargs):
-    parts = [sub(t, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end) for t in text]
+    s = sub(*text, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end, raw=raw)
     # Handle special file values
     if "file" in kwargs:
         kwargs["file"] = _resolve_file(kwargs["file"])
 
-    if raw:
-        # Print raw escape codes (repr format)
-        raw_parts = [repr(part) for part in parts]
-        print(*raw_parts, **kwargs)
-    else:
-        print(*parts, **kwargs)
+    print(s, **kwargs)
 
 if __name__ == "__main__":
     print("=== Sample 1: Simple substitution (no parentheses) ===")
@@ -358,58 +357,58 @@ if __name__ == "__main__":
 
 
     print("=== Sample 2: Function call with parentheses ===")
-    demo("GREEN(hello world)", color_prefix="")
+    demo("GREEN[hello world]", color_prefix="")
 
     print("=== Sample 3: Merged keys (BOLDGREEN) ===")
-    demo("BOLDGREEN(bold green text)", color_prefix="")
+    demo("BOLDGREEN[bold green text]", color_prefix="")
 
     print("=== Sample 3b: More merged keys ===")
-    demo("REDBOLD(red and bold) BLUEITALIC(blue and italic)", color_prefix="")
+    demo("REDBOLD[red and bold] BLUEITALIC[blue and italic]", color_prefix="")
 
     print("=== Sample 3c: Nested merged keys ===")
-    demo("BOLDGREEN(REDBOLD(nested merged))", color_prefix="")
+    demo("BOLDGREEN[REDBOLD[nested merged]]", color_prefix="")
 
     print("=== Sample 4: Multiple nested levels ===")
-    demo("RED(BOLD(UNDERLINE(triple nested)))")
+    demo("RED[BOLD[UNDERLINE[triple nested]]]")
 
     print("=== Sample 5: Mixed simple and function calls ===")
-    demo("GREEN(ok)abcITALIC(taco)REDfiretruckRESET")
+    demo("GREEN[ok]abcITALIC[taco]REDfiretruckRESET")
 
     print("=== Sample 6: RGB with hex color ===")
-    demo("rgb(#FF5733)(custom orange color)")
+    demo("rgb[#FF5733][custom orange color]")
 
     print("=== Sample 7: RGB with shorthand hex ===")
-    demo("rgb(#258)(shorthand hex)")
+    demo("rgb[#258][shorthand hex]")
 
     print("=== Sample 8: RGB with tuple ===")
-    demo("rgb(255,100,50)(RGB tuple color)")
+    demo("rgb[255,100,50][RGB tuple color]")
 
     print("=== Sample 9: Background RGB ===")
-    demo("bgrgb(#0000FF)(blue background)")
+    demo("bgrgb[#0000FF][blue background]")
 
     print("=== Sample 10: Complex nested with RGB ===")
-    demo("GREEN(BOLD(rgb(#FF0000)(red text inside)))")
+    demo("GREEN[BOLD[rgb[#FF0000][red text inside]]]")
 
     print("=== Sample 11: Multiple colors in sequence ===")
-    demo("RED(red) GREEN(green) BLUE(blue)")
+    demo("RED[red] GREEN[green] BLUE[blue]")
 
     print("=== Sample 12: Keys without underscores ===")
-    demo("bgrgb(#00FF00)(background green)")
+    demo("bgrgb[#00FF00][background green]")
 
     print("=== Sample 13: Merged colors (BLUERED) ===")
-    demo("BLUE+RED(merged blue and red)", color_prefix="")
+    demo("BLUE+RED[merged blue and red]")
 
     print("=== Sample 14: More color merges ===")
-    demo("GREEN+YELLOW(green+yellow) RED+BLUE(red+blue)", color_prefix="")
+    demo("GREEN+YELLOW[green+yellow] RED+BLUE[red+blue]")
 
     print("=== Sample 15: Stacked keys (BOLDITALICREDBLUE) ===")
-    demo("BOLD+ITALIC+RED+BLUE(bold italic merged red+blue)", color_prefix="")
+    demo("BOLD+ITALIC+RED+BLUE[bold italic merged red+blue]")
 
     print("=== Sample 16: Multiple stacked styles and colors ===")
-    demo("BOLD+UNDERLINE+GREEN+YELLOW(bold underline green+yellow)", color_prefix="")
+    demo("BOLD+UNDERLINE+GREEN+YELLOW[bold underline green+yellow]")
 
     print("=== Sample 17: Shortened aliases (B, I, U) ===")
-    demo("BOLD(bold) ITALIC(italic) UNDERLINE(underline) STRIKETHROUGH(strikethrough)", color_prefix="")
+    demo("BOLD[bold] ITALIC[italic] UNDERLINE[underline] STRIKETHROUGH[strikethrough]")
 
     print("=== Sample 18: Shortened aliases (B, I, U) ===")
     demo("[BOLD]<bold> [ITALIC]<italic> [UNDERLINE]<underline> [STRIKETHROUGH]<strikethrough>",

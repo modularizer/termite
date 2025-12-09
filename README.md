@@ -33,9 +33,9 @@ The `sub()` function provides a declarative string-based API for terminal format
 ```python
 from termite import sub, subprint
 
-sub("RED(text) GREEN(text) BLUE(text)")
-sub("BOLD(bold) ITALIC(italic) UNDERLINE(underline)")
-subprint("BOLDRED(Error message)")
+a = sub("RED[text] GREEN[text] BLUE[text]")
+b = sub("BOLD[bold] ITALIC[italic] UNDERLINE[underline]")
+subprint("BOLDRED[Error message]")
 ```
 
 ### Stacked Keys
@@ -43,8 +43,10 @@ subprint("BOLDRED(Error message)")
 Stack multiple keys together. Keys are matched longest-first (e.g., `RED` before `R`):
 
 ```python
-sub("BOLDITALICREDBLUE(bold italic merged red+blue)")
-sub("BOLDUNDERLINEGREENYELLOW(bold underline green+yellow)")
+from termite import sub, subprint
+
+x = sub("BOLDITALICREDBLU[bold italic merged red+blue]")
+subprint("BOLDUNDERLINEGREENYELLOW[bold underline green+yellow]")
 ```
 
 ### Merged Colors
@@ -52,9 +54,11 @@ sub("BOLDUNDERLINEGREENYELLOW(bold underline green+yellow)")
 Multiple colors are automatically merged by averaging RGB values:
 
 ```python
-sub("BLUERED(merged blue+red)")
-sub("GREENYELLOW(green+yellow)")
-sub("REDBLUEGREEN(three colors merged)")
+from termite import subprint
+
+subprint("BLUERED[merged blue+red]")
+subprint("GREENYELLOW[green+yellow]")
+subprint("REDBLUEGREEN[three colors merged]")
 ```
 
 ### Short Aliases
@@ -62,51 +66,62 @@ sub("REDBLUEGREEN(three colors merged)")
 - `B` = BOLD, `I` = ITALIC, `U` = UNDERLINE, `D` = DIM, `S` = STRIKETHROUGH, `R` = REVERSE, `H` = HIDDEN
 
 ```python
-sub("B(bold) I(italic) U(underline)")
-sub("BIU(bold italic underline)")
-sub("BRED(bold red)")
+from termite import subprint
+
+subprint("B(bold) I(italic) U(underline)")
+subprint("BOLD+ITALIC+UNDERLINE[bold italic underline]")
 ```
 
 ### Cursor Control
 
 ```python
-sub("LEFT RIGHT UP DOWN")              # Default: 1
-sub("LEFT(3) RIGHT(5) UP(2) DOWN(4)")  # With args
-sub("POS(10,20) ROW(5) COL(10)")       # Positioning
-sub("CLEAR ERASE BACK")                # Line control
-sub("WA(GRAY(completion))")            # Write ahead
+from termite import subprint
+
+subprint("LEFT RIGHT UP DOWN")              # Default: 1
+subprint("LEFT[3] RIGHT[5] UP[2] DOWN[4]")  # With args
+subprint("POS[10,20] ROW[5] COL[10]")       # Positioning
+subprint("CLEAR ERASE BACK")                # Line control
+subprint("WA[GRAY[completion]]")            # Write ahead
 ```
 
 ### RGB Colors
 
 ```python
-sub("FGRGB(#FF5733)(custom orange)")
-sub("FGRGB(#258)(shorthand)")
-sub("FGRGB(255,100,50)(RGB tuple)")
-sub("BGRGB(#0000FF)(background)")
+from termite import subprint
+
+subprint("rgb[#FF5733][custom orange]")
+subprint("rgb[#258][shorthand]")
+subprint("rgb[255,100,50][RGB tuple]")
+subprint("bgrgb[#0000FF][background]")
 ```
 
 ### Nested Patterns
 
 ```python
-sub("GREEN(BOLD(bold green))")
-sub("RED(BOLD(UNDERLINE(nested)))")
-sub("GREEN(BOLD(FGRGB(#FF0000)(red inside)))")
+from termite import subprint
+
+subprint("GREEN[BOLD[bold green]]")
+subprint("RED[BOLD[UNDERLINE[nested]]]")
+subprint("GREEN[BOLD[FGRGB[#FF0000][red inside]]]")
 ```
 
 ### Examples
 
 ```python
+from termite import subprint
+
 # Status messages
-subprint("GREEN(✓ Success) RED(✗ Error)")
+subprint("GREEN[✓ Success] RED[✗ Error]")
 
 # Progress
 for i in range(10):
-    subprint(f"BOLD(Progress: )GREEN({i+1}/10)", end="")
-    sub("CLEAR")
+    subprint(f"BOLD[Progress: ]GREEN[{i+1}/10]", end="")
+    subprint("CLEAR")
 
 # Interactive completion
-subprint(f"{input}WA(GRAY({completion}))")
+pre="prefix"
+completion="test"
+subprint(f"{pre}WA[GRAY[{completion}]]")
 ```
 
 ## Colors API
@@ -156,10 +171,12 @@ cursor.backspace()    # Backspace
 ## Print with Suggestions
 
 ```python
-from termite import print_with_suggestion
+import time
+from termite import cprint
 
-print_with_suggestion("User typed: ", "completion")
-print_with_suggestion("User typed: abc", "def")  # Updates previous
+cprint("User typed: ", completion="completion")
+time.sleep(1)
+cprint("User typed: abc", completion="def")  # Updates previous
 ```
 
 ## Module Structure
@@ -170,10 +187,5 @@ print_with_suggestion("User typed: abc", "def")  # Updates previous
 - `terminal.py` - High-level printing utilities
 - `raw.py` - Low-level ANSI codes
 - `chars.py` - Control character mappings
+- `clie.py` - Command Line Interface which calls sub
 
-## Notes
-
-- All color codes auto-reset with the high-level API
-- Uses ANSI escape codes (works on most modern terminals)
-- RGB colors require 24-bit color (truecolor) support
-- Keys in `sub()` are matched longest-first for correct parsing
