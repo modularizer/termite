@@ -286,3 +286,4 @@ echo -ne "\033[2K\r\033[32mStatus: OK\033[0m"
 - Experiment with `tput` command (part of `ncurses`) for portable terminal control
 - Explore terminal multiplexers like `tmux` and `screen` for advanced terminal features
 
+
