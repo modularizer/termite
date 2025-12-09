@@ -17,6 +17,7 @@ Examples:
   termite "LEFT(3)GREEN(Hello)" --end ""
   termite "RED(text)" --file /dev/stderr
   termite "GREEN(text)" --esc "{" --esc2 "}"
+  termite "GREEN(Hello)" --raw
         """
     )
     
@@ -71,6 +72,12 @@ Examples:
         help="Flush the output stream"
     )
     
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="Print raw ANSI escape codes instead of applying formatting"
+    )
+    
     args = parser.parse_args()
     
     # Prepare kwargs for sub()
@@ -95,7 +102,12 @@ Examples:
     }
     
     # Print the processed text
-    print(*processed_texts, **print_kwargs)
+    if args.raw:
+        # Print raw escape codes (repr format)
+        raw_texts = [repr(text) for text in processed_texts]
+        print(*raw_texts, **print_kwargs)
+    else:
+        print(*processed_texts, **print_kwargs)
 
 if __name__ == "__main__":
     main()

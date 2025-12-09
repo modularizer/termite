@@ -370,11 +370,25 @@ def _sub(text: str, name=""):
     - GREENtextRESET - simple substitution until RESET
     - FGRGB(#258)(text) - RGB with hex color
     - FGRGB(255,100,50)(text) - RGB with tuple
+    - GREEN - standalone key returns its code
     """
     if not text:
         return text
     
     prefix = name
+    
+    # Special case: if the entire text is just a valid key (with optional prefix), return its code
+    if prefix == "":
+        if text.isupper() and _is_valid_key(text):
+            code = _get_code(text)
+            if code:
+                return code
+    elif text == prefix or (text.startswith(prefix) and text[len(prefix):].isupper()):
+        key = text[len(prefix):] if text.startswith(prefix) else text
+        if key and _is_valid_key(key):
+            code = _get_code(key)
+            if code:
+                return code
     
     # Step 1: Replace constants NOT followed by parentheses
     result = []
@@ -683,12 +697,18 @@ def _resolve_file(file):
     # Already a file object
     return file
 
-def subprint(*text: str, name="", print=print, **kwargs):
+def subprint(*text: str, name="", raw=False, print=print, **kwargs):
     parts = [sub(t, name=name) for t in text]
     # Handle special file values
     if "file" in kwargs:
         kwargs["file"] = _resolve_file(kwargs["file"])
-    print(*parts, **kwargs)
+    
+    if raw:
+        # Print raw escape codes (repr format)
+        raw_parts = [repr(part) for part in parts]
+        print(*raw_parts, **kwargs)
+    else:
+        print(*parts, **kwargs)
 
 if __name__ == "__main__":
     print("=== Sample 1: Simple substitution (no parentheses) ===")
