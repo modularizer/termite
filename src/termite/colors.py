@@ -88,6 +88,7 @@ BG_BLUE  = TC(r.BG_BLUE , "blue", "bg", rgb=(b, b, blu))
 BG_MAGENTA = TC(r.BG_MAGENTA, "magenta", "bg", rgb=(v, b, v))
 BG_CYAN  = TC(r.BG_CYAN , "cyan", "bg", rgb=(b, v, v))
 BG_WHITE = TC(r.BG_WHITE, "white", "bg", rgb=(w,w,w))
+BG_GRAY = TC(r.BG_GRAY, "gray", "bg", rgb=(w,w,w))
 BG_BRIGHT_BLACK = TC(r.BG_BRIGHT_BLACK, "brightblack", "bg", rgb=(h, h, h))
 BG_BRIGHT_RED   = TC(r.BG_BRIGHT_RED  , "brightred", "bg", rgb=(f, b, b))
 BG_BRIGHT_GREEN = TC(r.BG_BRIGHT_GREEN, "brightgreen", "bg", rgb=(b, f, b))
@@ -239,6 +240,7 @@ def demo_color(
     print(c + s + RESET, **kw)
 
 
+fgd = TerminalCode.registry.get("fg", {})
 class FGColors:
     def __getattr__(self, item):
         return get_color(item)
@@ -247,13 +249,25 @@ class FGColors:
         return get_color(item)
 
     def __dir__(self):
-        return list(TerminalCode.registry.get("fg", {}))
+        return list(fgd)
 
     def __iter__(self):
-        return iter(TerminalCode.registry.get("fg", {}))
+        return iter(fgd)
+
+    def __repr__(self):
+        return repr(fgd)
+
+    def __str__(self):
+        return str(fgd)
+
+    def __contains__(self, item):
+        try:
+            return self[item] is not None
+        except:
+            return False
 
 
-
+bgd = TerminalCode.registry.get("bg", {})
 class BGColors:
     def __getattr__(self, item):
         return get_color(background=item)
@@ -261,16 +275,27 @@ class BGColors:
     def __getitem__(self, item):
         return get_color(background=item)
 
-    def __iter__(self):
-        return iter(TerminalCode.registry.get("bg", {}))
-
     def __dir__(self):
-        return list(TerminalCode.registry.get("bg", {}))
+        return list(bgd)
+
+    def __iter__(self):
+        return iter(bgd)
+
+    def __repr__(self):
+        return repr(bgd)
+
+    def __str__(self):
+        return str(bgd)
+
+    def __contains__(self, item):
+        try:
+            return self[item] is not None
+        except:
+            return False
 
 
 
 fg = FGColors()
 bg = BGColors()
-
 
 

@@ -65,5 +65,11 @@ class Control:
 
         return chr(code)
 
+    def __contains__(self, item):
+        try:
+            return self[item] is not None
+        except:
+            return False
+
 
 CTRL = Control()

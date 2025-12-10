@@ -1,8 +1,38 @@
 # Termite: Terminal Utilities
 
-Terminal manipulation utilities for Python: ANSI colors, cursor control, text styling, and string-based formatting.
+Terminal manipulation utilities for Python: colors, styles, emojis, cursor-control and string-based formatting.
 
-## Instal
+
+## Features
+* text-colors
+  * basic named colors
+  * arbitrary hex, rgb, or rgba(which gets blended back to rgb)
+  * sum to merge colors, e.g. BLUE + RED
+* highlight-colors
+    * basic named colors
+    * arbitrary hex, rgb, or rgba(which gets blended back to rgb)
+    * sum to merge colors, e.g. BLUE + RED
+* styles
+  * **bold**
+  * _italic_
+  * underline
+  * strikethrough
+* cursor actions
+  * write_ahead/save/restore
+  * clear/erase
+  * up/down/left/right
+  * pos/row/col
+* emojis
+  * `:fire` => 🔥
+* special fonts and ASCII art
+    * Big Text
+    * Boxed Text
+
+## How to use
+1. in Python
+2. in the command-line
+
+## Install
 ```bash
 pip install modularizer-termite
 ```
@@ -10,19 +40,22 @@ pip install modularizer-termite
 ## Quick Start
 
 ```python
-from termite import colors, cursor, sub, subprint
+from termite import subprint, full_demo
 
-# Colors API
-print(colors.red("Error"))
-print(colors.bg.blue("Background"))
-
-# Cursor control
-print(cursor.up(3))
-print(cursor.clear_line())
-
-# String substitution (recommended)
-subprint("RED(Error) GREEN(Success) BOLD(Important)")
+subprint("GREEN[BOX[BIG[hello, world]]]\nBGYELLOW[Termite can do a lot :fire:]")
+full_demo()
 ```
+
+## Tools
+
+- `from termite import t`: access pretty much any const or builder
+  - `print(t.GRAY + "some text" + t.RST)` or `print(t.GRAY("some text")`)
+- `from termite import sub`: do string substitutions to get the fancy string
+- `from termite import subprint`: do string substitutions then print the fancy string
+- `from termite import cprint`: each statement overwrites the last, print with black text and gray completions, built for an autocomplete solution
+- `termite.raw`: JUST the strings, none of our fancy classes or getters
+- `termite.chars.CTRL`: object which gets the key equivalents of Ctrl combos, e.g. `CTRL + 'c'`, `CTRL["c"]`, `CTRL.C`
+
 
 ## String Substitution with `sub()`
 
@@ -185,7 +218,7 @@ cprint("User typed: abc", completion="def")  # Updates previous
 - `cursor.py` - Cursor movement and positioning
 - `sub.py` - String substitution for formatting
 - `terminal.py` - High-level printing utilities
-- `raw.py` - Low-level ANSI codes
+- `raw` - Low-level ANSI codes
 - `chars.py` - Control character mappings
 - `clie.py` - Command Line Interface which calls sub
 

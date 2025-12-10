@@ -432,7 +432,8 @@ class Cases:
     def __getattr__(self, item):
         return self[item]
 
-
+    def __contains__(self, item):
+        return tocasekey(item) in _case_configs
 
     def __iter__(self):
         for k in _case_configs:

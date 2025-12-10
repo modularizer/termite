@@ -1,10 +1,17 @@
 from collections.abc import Callable
 
-import termite.raw as R
+import termite.raw.bg_colors as R_bg
+import termite.raw.fg_colors as R_fg
+import termite.raw.styles as R_s
+import termite.raw.hex_colors as R_h
 import termite.cursor as cursor
+from termite.art import box
+from termite.art.big import big_text
 from termite.fancy import t
 from termite.cases import case_names, cases
 from termite.colors import to_rgb, TerminalCode, merge_colors
+from termite.emojis import emoji_names, emojis, dashed_emoji_names
+from termite.unicode import unicode_names, unicode, dashed_unicode_names
 from termite.raw import FG_RGB, BG_RGB
 
 OPENER="["
@@ -16,13 +23,15 @@ ESC="%"
 ESC_END=""
 
 
+Rk = dir(R_fg) + dir(R_bg) + dir(R_s)
 
-color_keys = [x for x in dir(R) if x.upper() == x and not x.startswith('_') and not x.endswith("HEX") and not x.endswith("RGB")]
-color_values = {k: getattr(t, k) if not k.endswith("HEADER") else TerminalCode(getattr(R, k)) for k in color_keys}
-hex_colors = [x for x in dir(R) if x.endswith("HEX")]
+color_keys = [x for x in Rk if x.upper() == x and not x.startswith('_') and not x.endswith("HEX") and not x.endswith("RGB") and not x.endswith("HEADER")]
+color_values = {k.replace("_", ""): getattr(t, k)  for k in color_keys}
+color_keys = list(color_values)
+hex_colors = [x for x in dir(R_h) if x.endswith("HEX")]
 for k in hex_colors:
     color_keys.append(k)
-    hex_val = getattr(R, k)
+    hex_val = getattr(R_h, k)
     color_values[k] = FG_RGB(*to_rgb(hex_val))
     color_values["BG_" + k] = BG_RGB(*to_rgb(hex_val))
 
@@ -55,6 +64,8 @@ cursor_functions = {
     "WRITEAHEAD": cursor.write_ahead,
     "WA": cursor.write_ahead,
     "COMPLETION": lambda x: cursor.write_ahead(t.GRAY(x)),
+    "BIG": big_text,
+    "BOX": box,
     **{k: cases[k] for k in case_names}
 }
 cursor_function_keys = list(sorted(list(cursor_functions.keys()), key=len, reverse=True))
@@ -112,7 +123,7 @@ class Token(Node):
         self.end = None
 
 
-    def open(self, end=R.RESET, opener=OPENER):
+    def open(self, end=R_fg.RESET, opener=OPENER):
         node = self.set(opener)
         node.opened = True
         node.called = True
@@ -157,6 +168,15 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
     for k in cursor_function_keys:
         node = root.set(color_prefix + k + color_suffix)
         node.open(cursor_functions[k])
+
+    for k in emoji_names:
+        root.set(":" + k + ":").value = emojis[k]
+    for k in dashed_emoji_names:
+        root.set(":" + k + ":").value = emojis[k]
+    for k in unicode_names:
+        root.set(":" + k + ":").value = unicode[k]
+    for k in dashed_unicode_names:
+        root.set(":" + k + ":").value = unicode[k]
     root.set(color_prefix + "rgb" + color_suffix).open(opener=opener).value = "rgb" + opener
     root.set(color_prefix + "bgrgb" + color_suffix).open(opener=opener).value = "bgrgb" + opener
     root.set(color_prefix + "rgba" + color_suffix).open(opener=opener).value = "rgba" + opener
@@ -175,6 +195,9 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
         elif not escaped and ch == joiner and last_node.value:
             continue
         elif not escaped and ch == closer:
+            if len(last_node.full_text) > len(last_node.prefix):
+                pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
+                tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node]
             for tk in reversed(tokens):
                 if tk.opened:
                     px = tk.value
@@ -220,7 +243,6 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
             node = last_node[ch]
             if not node.prefix and (last_node.value or last_node.func):
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
-                pp = pre_prefix
                 tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node, root.clone()[ch if not opening else ""]]
                 continue
             # pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
@@ -284,7 +306,7 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
                         s += bg_colors[0]
                     bg_colors = []
                 s += resolve(cc, cf)
-            elif isinstance(c, TerminalCode) and c != R.RESET:
+            elif isinstance(c, TerminalCode) and c != R_fg.RESET:
                 if "fg" in c.groups:
                     colors.append(c)
                 elif "bg" in c.groups:
@@ -317,7 +339,7 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
         before = ""
         while before != s:
             before = s
-            s = s.replace(R.RESET + R.RESET, R.RESET)
+            s = s.replace(R_fg.RESET + R_fg.RESET, R_fg.RESET)
         return s
 
     items = all_levels[0]
@@ -332,7 +354,7 @@ def demo(text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
     r = sub(text, color_prefix=color_prefix, color_suffix=color_suffix, opener=opener, closer=closer, joiner=joiner, esc=esc, esc_end=esc_end)
     print(f"Input:  {text!r}")
     print(f"Output: {r!r}")
-    print(f"Result: {r}")
+    print(r)
     print()
 
 def _resolve_file(file):
@@ -358,75 +380,39 @@ def subprint(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER
 
     print(s, **kwargs)
 
-if __name__ == "__main__":
-    print("=== Sample 1: Simple substitution (no parentheses) ===")
+
+
+def full_demo():
     demo("Hello TMGREENworldTMRESET!", color_prefix="TM")
-
-
-    print("=== Sample 2: Function call with parentheses ===")
     demo("GREEN[hello world]", color_prefix="")
-
-    print("=== Sample 3: Merged keys (BOLDGREEN) ===")
     demo("BOLDGREEN[bold green text]", color_prefix="")
-
-    print("=== Sample 3b: More merged keys ===")
     demo("REDBOLD[red and bold] BLUEITALIC[blue and italic]", color_prefix="")
-
-    print("=== Sample 3c: Nested merged keys ===")
     demo("BOLDGREEN[REDBOLD[nested merged]]", color_prefix="")
-
-    print("=== Sample 4: Multiple nested levels ===")
     demo("RED[BOLD[UNDERLINE[triple nested]]]")
-
-    print("=== Sample 5: Mixed simple and function calls ===")
     demo("GREEN[ok]abcITALIC[taco]REDfiretruckRESET")
-
-    print("=== Sample 6: RGB with hex color ===")
     demo("rgb[#FF5733][custom orange color]")
-
-    print("=== Sample 7: RGB with shorthand hex ===")
     demo("rgb[#258][shorthand hex]")
-
-    print("=== Sample 8: RGB with tuple ===")
     demo("rgb[255,100,50][RGB tuple color]")
-
-    print("=== Sample 9: Background RGB ===")
     demo("bgrgb[#0000FF][blue background]")
-
-    print("=== Sample 10: Complex nested with RGB ===")
     demo("GREEN[BOLD[rgb[#FF0000][red text inside]]]")
-
-    print("=== Sample 11: Multiple colors in sequence ===")
     demo("RED[red] GREEN[green] BLUE[blue]")
-
-    print("=== Sample 12: Keys without underscores ===")
     demo("bgrgb[#00FF00][background green]")
-
-    print("=== Sample 13: Merged colors (BLUERED) ===")
     demo("BLUE+RED[merged blue and red]")
-
-    print("=== Sample 14: More color merges ===")
     demo("GREEN+YELLOW[green+yellow] RED+BLUE[red+blue]")
-
-    print("=== Sample 15: Stacked keys (BOLDITALICREDBLUE) ===")
     demo("BOLD+ITALIC+RED+BLUE[bold italic merged red+blue]")
-
-    print("=== Sample 16: Multiple stacked styles and colors ===")
     demo("BOLD+UNDERLINE+GREEN+YELLOW[bold underline green+yellow]")
-
-    print("=== Sample 17: Shortened aliases (B, I, U) ===")
     demo("BOLD[bold] ITALIC[italic] UNDERLINE[underline] STRIKETHROUGH[strikethrough]")
-
-    print("=== Sample 18: Shortened aliases (B, I, U) ===")
     demo("[BOLD]<bold> [ITALIC]<italic> [UNDERLINE]<underline> [STRIKETHROUGH]<strikethrough>",
          color_prefix="[", color_suffix="]", opener="<", closer=">")
-
-    print("=== Sample 19: Shortened aliases (B, I, U) ===")
     demo("BOLD<bold> ITALIC<italic> UNDERLINE<underline> STRIKETHROUGH<strikethrough>",
          opener="<", closer=">")
-
-
     demo("CAMELCASE[sample of camel case] TITLECASE[titles are cool]")
     demo("BOLD[CAMELCASE[sample of camel case]] TITLECASE[titles are cool]")
     demo("BOLD[art] abc GREEN[titles are cool]")
+    demo("emojis are cool :fire")
+    demo("unicode is cool :arrow-double-down")
+    demo("BOX[BIG[hello, world]")
+
+if __name__ == "__main__":
+    full_demo()
 

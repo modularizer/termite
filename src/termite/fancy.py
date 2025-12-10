@@ -3,6 +3,8 @@ from termite.tc import TerminalCode, BaseColor
 from termite.raw import RESET
 from termite.cases import cases
 from termite.cursor import cursor
+from termite.emojis import emojis
+from termite.unicode import unicode
 from termite.styles import styles, get_style
 
 
@@ -15,8 +17,12 @@ class FancyText:
     styles = styles
     cases = cases
     cursor = cursor
+    emojis = emojis
+    unicode = unicode
     reset = RESET
     RESET = RESET
+    rst = RESET
+    RST = RESET
 
     demo_color=staticmethod(demo_color)
     register_terminal_color = staticmethod(register_terminal_color)
@@ -41,10 +47,14 @@ class FancyText:
     def get_item(self, item):
         if isinstance(item, TerminalCode):
             return item
-        if item.lower().endswith("case"):
+        if item in self.cases:
             return self.cases[item]
         if item in self.cursor:
             return self.cursor[item]
+        if item in self.emojis:
+            return self.emojis[item]
+        if item in self.unicode:
+            return self.unicode[item]
         s = get_style(item)
         if s:
             return s
@@ -53,8 +63,16 @@ class FancyText:
             return TerminalCode.retrieve(name[2:], "bg") or BGRGBTerminalCode(name[2:])
         return TerminalCode.retrieve(item, "fg") or FGRGBTerminalCode(item)
 
+    def __contains__(self, item):
+        try:
+            if item in self.cases or item in self.cursor or item in self.emojis or item in self.unicode:
+                return True
+            return self[item] is not None
+        except:
+            return False
+
     def __iter__(self):
-        return iter({"styles": styles, "fg": fg, "bg": bg})
+        return iter({"styles": styles, "fg": fg, "bg": bg, "unicode": self.unicode, "emojis": self.emojis, "cases": self.cases, "cursor": self.cursor})
 
     def __call__(self,
                  foreground: BaseColor | TerminalCode | None = None,

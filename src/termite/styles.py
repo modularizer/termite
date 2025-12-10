@@ -12,6 +12,8 @@ HIDDEN     = TC(r.HIDDEN    , "hidden", "styles")     # used for passwords
 PASSWORD     = TC(r.HIDDEN    , "password", "styles")     # used for passwords
 STRIKETHROUGH = TC(r.STRIKETHROUGH, "strikethrough", "styles")
 
+d = TerminalCode.registry.get("styles", {})
+
 class Styles:
     def __getattr__(self, item):
         return get_style(item)
@@ -20,13 +22,19 @@ class Styles:
         return get_style(item)
 
     def __iter__(self):
-        return iter(TerminalCode.registry.get("styles", {}))
+        return iter(d)
 
     def __dir__(self):
-        return list(TerminalCode.registry.get("styles", {}))
+        return list(d)
 
     def __contains__(self, item):
-        return item.lower() in TerminalCode.registry.get("styles", {})
+        return item.lower() in d
+
+    def keys(self):
+        return d.keys()
+
+    def values(self):
+        return d.values()
 
 
 styles = Styles()

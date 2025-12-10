@@ -1,12 +1,11 @@
 import sys
 
-from termite.raw import BG_BRIGHT_BLACK, RESET
 from termite.chars import BACKSPACE
 import termite.cursor  as cursor
 from termite.sub import sub as substitute
 from termite.fancy import t
 
-complete = lambda t: t.write_ahead(t.GRAY(t))
+complete = lambda x: t.write_ahead(t.GRAY(x))
 
 
 global_state = {}
@@ -21,6 +20,7 @@ def cprint(*pre: str,
           sub: bool = False,
            **kw,
           ):
+    print = print or (lambda *a, **kw: None)
     post = completion
     post = post or ""
     pre = "".join(pre)
@@ -48,7 +48,7 @@ def cprint(*pre: str,
     backspace_count = min(len(pre), backspace_count)
     prefix_stays = pre[:-backspace_count] if backspace_count > 0 else pre
     prefix_replaced = pre[-backspace_count:] if backspace_count > 0 else ""
-    replaced_highlight = colors.bg.white(prefix_replaced) if prefix_replaced else ""
+    replaced_highlight = t.bg.white(prefix_replaced) if prefix_replaced else ""
     completion = complete(post) if post else ""
 
     before_cursor = f"{prefix_stays}{replaced_highlight}"
@@ -60,8 +60,9 @@ def cprint(*pre: str,
         if sub:
             completion = substitute(completion, **kw)
         print(completion, end="", flush=True, file=file)
-    t = before_cursor + completion
-    state["old"] = t
+    txt = before_cursor + completion
+    state["old"] = txt
+    return txt
 
 if __name__ == "__main__":
     import time
@@ -78,18 +79,18 @@ if __name__ == "__main__":
     # d()
     # p("ghi")
     # d()
-    # print_with_suggestion("abc")
+    # cprint("abc")
     # d()
-    # print_with_suggestion("abcd", "efg")
+    # cprint("abcd", "efg")
     # d()
-    # print_with_suggestion("abcdefg")
+    # cprint("abcdefg")
     # d()
-    print_with_suggestion("a\nb\nc\nd")
+    cprint("a\nb\nc\nd")
     d()
-    print_with_suggestion("e")
+    cprint("e")
     d()
-    print_with_suggestion("f\n")
+    cprint("f\n")
     d()
-    print_with_suggestion("test", "compl")
+    cprint("test", completion="compl")
     d()
-    print_with_suggestion("testcompl", "etion")
+    cprint("testcompl", completion="etion")
