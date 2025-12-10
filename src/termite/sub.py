@@ -7,6 +7,7 @@ import termite.raw.hex_colors as R_h
 import termite.cursor as cursor
 from termite.art import box
 from termite.art.big import big_text
+from termite.art.box import spaced_underline, space_box, indent_text
 from termite.fancy import t
 from termite.cases import case_names, cases
 from termite.colors import to_rgb, TerminalCode, merge_colors
@@ -66,6 +67,9 @@ cursor_functions = {
     "COMPLETION": lambda x: cursor.write_ahead(t.GRAY(x)),
     "BIG": big_text,
     "BOX": box,
+    "SPACED_UNDERLINE": spaced_underline,
+    "SPACE_BOX": space_box,
+    "INDENT": indent_text,
     **{k: cases[k] for k in case_names}
 }
 cursor_function_keys = list(sorted(list(cursor_functions.keys()), key=len, reverse=True))
@@ -197,7 +201,9 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
         elif not escaped and ch == closer:
             if len(last_node.full_text) > len(last_node.prefix):
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
-                tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node]
+                pp = pre_prefix
+                # TODO: figure out when
+                # tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node]
             for tk in reversed(tokens):
                 if tk.opened:
                     px = tk.value
@@ -243,6 +249,7 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
             node = last_node[ch]
             if not node.prefix and (last_node.value or last_node.func):
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
+                pp = pre_prefix
                 tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node, root.clone()[ch if not opening else ""]]
                 continue
             # pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
@@ -252,6 +259,7 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
                 node.opened = False
             else:
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
+                pp = pre_prefix
                 tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [node]
                 node.full_text = ""
                 node.prefix = ""
