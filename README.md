@@ -27,6 +27,7 @@ Terminal manipulation utilities for Python: colors, styles, emojis, cursor-contr
 * special fonts and ASCII art
     * Big Text
     * Boxed Text
+* Markdown Rendering using `termite-md`
 
 ## How to use
 1. in Python
