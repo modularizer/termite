@@ -1,6 +1,5 @@
 from typing import Literal
 
-
 DETECT_MODE = "detect"
 CONSOLE_MODE = "console"
 TERMINAL_MODE = "terminal"
@@ -89,12 +88,76 @@ def replace(ch=" "):
     return ch + left()
 
 
-
-
-
 def write_ahead(text: str):
     return save() + text + restore()
 
 
+#
+# cursor_actions = [
+#     "POS", "LEFT", "RIGHT", "UP", "DOWN", "ROW", "COL",
+#     "SAVE", "RESTORE", "WRITE_AHEAD", "CLEAR_LINE", ""
+# ]
+
+funcs = {
+    "WRITEAHEAD": write_ahead,
+    "REPLACE": replace,
+    "BACKSPACE": backspace,
+    "ERASE": erase_line,
+    "ERASELINE": erase_line,
+    "CLEAR": clear_line,
+    "LEFT": left,
+    "RIGHT": right,
+    "UP": up,
+    "DOWN": down,
+    "ROW": row,
+    "COL": col,
+    "POS": pos,
+    "WA": write_ahead,
+    "SAVE": save,
+    "RESTORE": restore
+}
 
 
+
+_consts = {
+    "LEFT": left(),
+    "RIGHT": right(),
+    "UP": up(),
+    "DOWN": down(),
+    "CLEAR": CLEAR_LINE,
+    "ERASE": ERASE_LINE,
+    "CLEAR_LINE": CLEAR_LINE,
+    "ERASE_LINE": ERASE_LINE,
+    "CLEAR_REST": CLEAR_REST_OF_LINE,
+    "CLEAR_REST_OF_LINE": CLEAR_REST_OF_LINE,
+    "SAVE": save(),
+    "RESTORE": restore()
+}
+
+class CursorConsts:
+    def __getitem__(self, item):
+        k = item.upper().replace("_", "")
+        return _consts[k]
+
+    def __getattr__(self, item):
+        return self[item]
+
+    def __contains__(self, item):
+        return item.upper().replace("_", "") in _consts
+
+consts = CursorConsts()
+
+class Cursor:
+    consts = consts
+
+    def __getitem__(self, item):
+        k = item.upper().replace("_", "")
+        return funcs[k]
+
+    def __getattr__(self, item):
+        return self[item]
+
+    def __contains__(self, item):
+        return item.upper().replace("_", "") in funcs
+
+cursor = Cursor()

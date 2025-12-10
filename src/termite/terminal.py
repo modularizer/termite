@@ -1,11 +1,12 @@
 import sys
 
-from termite.colors import colors, BG_BRIGHT_BLACK, RESET
+from termite.raw import BG_BRIGHT_BLACK, RESET
 from termite.chars import BACKSPACE
 import termite.cursor  as cursor
 from termite.sub import sub as substitute
+from termite.fancy import t
 
-complete = lambda t: cursor.write_ahead(colors.GRAY(t))
+complete = lambda t: t.write_ahead(t.GRAY(t))
 
 
 global_state = {}

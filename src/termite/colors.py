@@ -1,163 +1,7 @@
 import termite.raw as r
-raw_colors = r
-
-BaseColor = int | str | tuple[int, int, int] | tuple[int, int, int, float] | tuple[int, int, int, int]
-
-def to_rgba(color: BaseColor) -> tuple[int, int, int, float] | None:
-    """
-    Accepts:
-      - some common colors from known_colors
-      - (r, g, b) tuple with values 0–255
-      - (r, g, b, a) tuple with values 0–255
-      - '#RRGGBB' or 'RRGGBB'
-      - '#RGB' or 'RGB' shorthand
-    Returns:
-      (r, g, b, a) tuple
-    """
-
-    if color is None:
-        return None
-    if color == "":
-        return (255, 255, 255, 1)
-    if isinstance(color, int):
-        color = hex(color)
-    if hasattr(color, "rgba"):
-        return color.rgba
-    if hasattr(color, "rgb"):
-        return *color.rgb, 1
-    if isinstance(color, str):
-        color = TerminalCode.normname(color)
-        r = repr(color)
-        if r.startswith("'\\"):
-            if r.startswith(raw_colors.FG_RGB_HEADER) or r.startswith(raw_colors.BG_RGB_HEADER):
-                rs, gs, bs = r[:-1].split(",")[2:]
-                return int(rs), int(gs), int(bs)
-            tc = TerminalCode.retrieve(color)
-            if tc and tc.rgb:
-                return *tc.rgb, 1
-            raise Exception("invalid string")
-    if not color:
-        return (255, 255, 255, 1)
-    if isinstance(color, str):
-        color = color.lower()
-
-    if isinstance(color, tuple) and len(color) == 3:
-        r, g, b = color
-        return int(r), int(g), int(b), 1.0
-
-    if isinstance(color, tuple) and len(color) == 4:
-        r, g, b, a = color
-        if a > 1:
-            a = a/255
-        return int(r), int(g), int(b), float(a)
-
-    if not isinstance(color, str):
-        raise TypeError(f"color must be an (r,g,b) or (r,g,b,a) tuple or a hex string, not {color}")
-
-    s = color.strip().lower()
-    if s.startswith("#"):
-        s = s[1:]
-    if s.startswith("0x"):
-        s = s[2:]
-
-    if len(s) == 3:
-        # #RGB → #RRGGBBAA
-        s = "".join(ch * 2 for ch in s) + "FF"
-    if len(s) == 4:
-        # #RGBA → #RRGGBBAA
-        s = "".join(ch * 2 for ch in s)
-
-    if len(s) == 6:
-        s += "FF"
-    if len(s) != 8:
-        raise ValueError(f"Invalid hex color: {color!r}")
-
-    r = int(s[0:2], 16)
-    g = int(s[2:4], 16)
-    b = int(s[4:6], 16)
-    a = int(s[6: 8], 16) / 255
-    return r, g, b, a
-
-
-
-class TerminalCode(str):
-    registry = {
-
-    }
-    reverse_registry: dict[str, list["TerminalCode"]] = {
-
-    }
-
-    @staticmethod
-    def normname(s: str):
-        return s.lower().replace(" ","").replace("-","").replace("_","") if isinstance(s, str) else s
-
-    @classmethod
-    def retrieve(cls, name: str, group: str | None = None):
-        if name is None:
-            return None
-        if not isinstance(name, str):
-            return None
-        if isinstance(name, TerminalCode):
-            return name
-        if (repr(name).startswith("'\\")):
-            rr = cls.reverse_registry.get(name)
-            if rr:
-                return rr[0]
-            return cls(name)
-        name = cls.normname(name)
-        if group is not None:
-            group = cls.normname(group)
-            return cls.registry.get(group, {}).get(name)
-
-        if name in cls.registry.get("unknown", {}):
-            return cls.registry["unknown"][name]
-        for g in cls.registry:
-            if name in cls.registry[g]:
-                return cls.registry[g][name]
-
-    def __new__(cls, code: str, name: str = "unknown", *groups: str, rgb: BaseColor | None = None):
-        obj = super().__new__(cls, code)  # create the string instance
-        rgb = to_rgba(rgb)[:3] if rgb is not None else None
-        name = cls.normname(name)
-        obj.name = name                     # attach custom attribute
-        if name not in cls.reverse_registry:
-            cls.reverse_registry[name] = []
-        cls.reverse_registry[name].append(obj)
-        groups = groups or ("unknown",)
-        groups = [cls.normname(n) for n in groups]
-        obj.groups = groups
-        obj.rgb = rgb
-        for group in groups:
-            if group not in cls.registry:
-                cls.registry[group] = {}
-            cls.registry[group][name] = obj
-        return obj
-
-    @property
-    def aliases(self):
-        return [x.name for x in self.reverse_registry[str(self)] if x.name != self.name]
-
-    def __call__(self, text: str = ""):
-        return self + text + RESET
-
-    def __add__(self, other):
-        o = str(other)
-        oname = getattr(other, "name", o)
-        return TerminalCode(str(self) + o, name=f"{self.name}+{oname}")
-
-    def __getitem__(self, item):
-        return self + item
-
-    def __getattr__(self, item):
-        return self + item
-
-    def print(self, m="", print=print, **kw):
-        print(self(m), **kw)
-
-
-TC = TerminalCode
-
+from termite.cases import cases
+from termite.styles import get_style
+from termite.tc import TerminalCode, TC, to_rgba, BaseColor
 
 RESET = TC(r.RESET, "reset", "fg", "bg", "styles")
 
@@ -291,24 +135,7 @@ BG_NAVY = BGRGBTerminalCode(r.NAVY_HEX, "navy")
 BG_OLIVE = BGRGBTerminalCode(r.OLIVE_HEX, "olive")
 BG_MAROON = BGRGBTerminalCode(r.MAROON_HEX, "maroon")
 
-# === Text Attributes ===
-BOLD       = TC(r.BOLD      , "bold", "styles")
-B      = TC(r.BOLD      , "b", "styles")
-DIM        = TC(r.DIM       , "dim", "styles")
-D      = TC(r.DIM       , "d", "styles")
-ITALIC     = TC(r.ITALIC    , "italic", "styles")
-I     = TC(r.ITALIC    , "i", "styles")
-UNDERLINE  = TC(r.UNDERLINE , "underline", "styles")
-U  = TC(r.UNDERLINE , "u", "styles")
-BLINK      = TC(r.BLINK     , "blink", "styles")     # rarely supported, and often disabled
-REVERSE    = TC(r.REVERSE   , "reverse", "styles")     # swap fg/bg
-R    = TC(r.REVERSE   , "r", "styles")     # swap fg/bg
-HIDDEN     = TC(r.HIDDEN    , "hidden", "styles")     # used for passwords
-PASSWORD     = TC(r.HIDDEN    , "password", "styles")     # used for passwords
-H    = TC(r.HIDDEN    , "h", "styles")     # used for passwords
-STRIKETHROUGH = TC(r.STRIKETHROUGH, "strikethrough", "styles")
-S = TC(r.STRIKETHROUGH, "s", "styles")
-DASH = TC(r.STRIKETHROUGH, "-", "styles")
+
 
 
 # _____________________________________________________________________________________________________________________
@@ -340,25 +167,6 @@ settings["tc"] = to_rgb(INITIAL_DEFAULT_TERMINAL_COLOR, "#fff")
 def register_terminal_color(color: str, background_of_background=INITIAL_DEFAULT_TERMINAL_COLOR):
     settings["tc"] = to_rgb(color, background_of_background)
 
-
-def get_style(style: list[str] | str | None = None):
-    if isinstance(style, TerminalCode):
-        return style
-    if not style:
-        return TerminalCode("", "empty", "styles")
-    known_styles = TerminalCode.registry.get("styles", "")
-    style = TerminalCode.normname(style) if isinstance(style, str) else [c if isinstance(c, TerminalCode) else TerminalCode.normname(c)  for c in style]
-    if isinstance(style, str) and not all(c in known_styles for c in style):
-        style = [style]
-    s = TerminalCode.retrieve(style[0], "styles")
-    if s is None:
-        return TerminalCode("", "empty", "styles")
-    for c in style[1:]:
-        x = TerminalCode.retrieve(c, "styles")
-        if x is None:
-            x = TerminalCode("", "empty", "styles")
-        s += x
-    return s
 
 
 def merge_colors(color1: str | TerminalCode, color2: str | TerminalCode, group: str = "fg") -> TerminalCode:
@@ -444,6 +252,8 @@ class FGColors:
     def __iter__(self):
         return iter(TerminalCode.registry.get("fg", {}))
 
+
+
 class BGColors:
     def __getattr__(self, item):
         return get_color(background=item)
@@ -457,94 +267,10 @@ class BGColors:
     def __dir__(self):
         return list(TerminalCode.registry.get("bg", {}))
 
-class Styles:
-    def __getattr__(self, item):
-        return get_style(item)
 
-    def __getitem__(self, item):
-        return get_style(item)
-
-    def __iter__(self):
-        return iter(TerminalCode.registry.get("styles", {}))
-
-    def __dir__(self):
-        return list(TerminalCode.registry.get("styles", {}))
 
 fg = FGColors()
 bg = BGColors()
-styles = Styles()
-
-class FancyText:
-    fg = fg
-    bg = bg
-    styles = styles
-    reset = RESET
-    RESET = RESET
-
-    demo_color=staticmethod(demo_color)
-    register_terminal_color = staticmethod(register_terminal_color)
-    get_color = staticmethod(get_color)
 
 
-    def __getattr__(self, item):
-        return self.get_item(item)
 
-
-    def __getitem__(self, item):
-        return self.get_item(item)
-
-    @property
-    def terminal_color(self):
-        return settings["tc"]
-
-    @terminal_color.setter
-    def terminal_color(self, value):
-        settings["tc"] = value
-
-    def get_item(self, item):
-        if isinstance(item, TerminalCode):
-            return item
-        s = get_style(item)
-        if s:
-            return s
-        name = TerminalCode.normname(item)
-        if name.startswith("bg"):
-            return TerminalCode.retrieve(name[2:], "bg") or BGRGBTerminalCode(name[2:])
-        return TerminalCode.retrieve(item, "fg") or FGRGBTerminalCode(item)
-
-    def __iter__(self):
-        return iter({"styles": styles, "fg": fg, "bg": bg})
-
-    def __call__(self,
-                 foreground: BaseColor | TerminalCode | None = None,
-                 background: BaseColor | TerminalCode | None = None,
-                 style: list[str] | str = "",
-                 terminal_color: str | None = None
-                 ):
-        return get_color(foreground=foreground, background=background, style=style, terminal_color=terminal_color)
-
-    def full_demo(self):
-        for k in self.fg:
-            self.demo_color(k)
-        for k in self.bg:
-            self.demo_color(background=k)
-        for k in self.styles:
-            self.demo_color(style=k)
-
-colors = FancyText()
-c = colors
-
-
-if __name__ == "__main__":
-    c.full_demo()
-
-    others = [
-        "#343",
-        "#797",
-        "#249823",
-        "#249823AA"
-    ]
-    for k in others:
-        c.demo_color(k)
-
-    c.demo_color("lime", "maroon")

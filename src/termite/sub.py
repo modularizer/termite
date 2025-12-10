@@ -1,8 +1,9 @@
 from collections.abc import Callable
 
 import termite.raw as R
-import termite.colors as C
 import termite.cursor as cursor
+from termite.fancy import t
+from termite.cases import case_names, cases
 from termite.colors import to_rgb, TerminalCode, merge_colors
 from termite.raw import FG_RGB, BG_RGB
 
@@ -17,7 +18,7 @@ ESC_END=""
 
 
 color_keys = [x for x in dir(R) if x.upper() == x and not x.startswith('_') and not x.endswith("HEX") and not x.endswith("RGB")]
-color_values = {k: getattr(C, k) if not k.endswith("HEADER") else TerminalCode(getattr(R, k)) for k in color_keys}
+color_values = {k: getattr(t, k) if not k.endswith("HEADER") else TerminalCode(getattr(R, k)) for k in color_keys}
 hex_colors = [x for x in dir(R) if x.endswith("HEX")]
 for k in hex_colors:
     color_keys.append(k)
@@ -53,7 +54,8 @@ cursor_functions = {
     "DOWN": cursor.down,
     "WRITEAHEAD": cursor.write_ahead,
     "WA": cursor.write_ahead,
-    "COMPLETION": lambda t: cursor.write_ahead(C.GRAY(t))
+    "COMPLETION": lambda x: cursor.write_ahead(t.GRAY(x)),
+    **{k: cases[k] for k in case_names}
 }
 cursor_function_keys = list(sorted(list(cursor_functions.keys()), key=len, reverse=True))
 
@@ -115,7 +117,7 @@ class Token(Node):
         node.opened = True
         node.called = True
         node.value = self.value
-        node.end = end if isinstance(end,str) else None
+        node.end = end if isinstance(end, str) else None
         node.func = end if not isinstance(end, str) else None
         return node
 
@@ -216,14 +218,19 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
         else:
             opening = ch == opener and last_node.children.get(opener) and not escaped
             node = last_node[ch]
-            if not node.prefix and last_node.value:
+            if not node.prefix and (last_node.value or last_node.func):
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
+                pp = pre_prefix
                 tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [last_node, root.clone()[ch if not opening else ""]]
                 continue
+            # pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
+            # tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [node]
             tokens[-1] = node
             if not opening:
                 node.opened = False
             else:
+                pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
+                tokens = tokens[:-1] + ([root.clone()[pre_prefix] ] if pre_prefix else []) + [node]
                 node.full_text = ""
                 node.prefix = ""
 
@@ -251,12 +258,13 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
         else:
             current_list.append(t.full_text)
 
-    def resolve(content, func = lambda s: s):
+    def resolve(content, func=None):
         s = ""
         colors = []
         bg_colors = []
         for c in [*content, ""]:
             if isinstance(c, tuple):
+                cc, cf = c
                 if colors:
                     if len(colors) > 1:
                         co = merge_colors(colors[0], colors[1], "fg")
@@ -275,7 +283,7 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
                     else:
                         s += bg_colors[0]
                     bg_colors = []
-                s += resolve(*c)
+                s += resolve(cc, cf)
             elif isinstance(c, TerminalCode) and c != R.RESET:
                 if "fg" in c.groups:
                     colors.append(c)
@@ -304,9 +312,8 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
                     bg_colors = []
                 s += c
             else:
-                print("res", c)
                 raise Exception(f"{c}, {type(c)}")
-        s = func(s)
+        s = func(s) if func is not None else s
         before = ""
         while before != s:
             before = s
@@ -314,7 +321,7 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
         return s
 
     items = all_levels[0]
-    s = resolve(items)[:-1]
+    s = resolve(items, lambda s:s)[:-1]
     if raw:
         return repr(s)
     return s
@@ -417,4 +424,9 @@ if __name__ == "__main__":
     print("=== Sample 19: Shortened aliases (B, I, U) ===")
     demo("BOLD<bold> ITALIC<italic> UNDERLINE<underline> STRIKETHROUGH<strikethrough>",
          opener="<", closer=">")
+
+
+    demo("CAMELCASE[sample of camel case] TITLECASE[titles are cool]")
+    demo("BOLD[CAMELCASE[sample of camel case]] TITLECASE[titles are cool]")
+    demo("BOLD[art] abc GREEN[titles are cool]")
 
