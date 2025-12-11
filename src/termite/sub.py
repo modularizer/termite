@@ -21,7 +21,7 @@ PREFIX=""
 SUFFIX=""
 JOINER="+"
 ESC="%"
-ESC_END=""
+ESC_END="%"
 
 
 Rk = dir(R_fg) + dir(R_bg) + dir(R_s)
@@ -243,10 +243,12 @@ def sub(*text: str, color_prefix=PREFIX, color_suffix=SUFFIX, opener=OPENER, clo
                     break
             else:
                 tokens[-1] = last_node[closer]
-
         else:
             opening = ch == opener and last_node.children.get(opener) and not escaped
             node = last_node[ch]
+            if escaped:
+                node.prefix = ""
+                node.children = node.root.children
             if not node.prefix and (last_node.value or last_node.func):
                 pre_prefix = last_node.full_text[:-len(last_node.prefix)] if len(last_node.full_text) > len(last_node.prefix) else ""
                 pp = pre_prefix
