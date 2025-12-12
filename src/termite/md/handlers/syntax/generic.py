@@ -77,3 +77,5 @@ def highlight_generic(lines: list[str]) -> list[str]:
 
     return styled_lines
 
+
+

@@ -22,3 +22,5 @@ def register_text_handlers(renderer):
     renderer.register_handler(r'(?<!\*)\*(?P<text>[^*]+?)\*(?!\*)', italic_handler)
     renderer.register_handler(r'(?<!_)_(?P<text>[^_]+?)_(?!_)', italic_handler)
 
+
+

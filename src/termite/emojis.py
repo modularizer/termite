@@ -36,3 +36,4 @@ class Emojis:
         return "".join(emojis.values())
 
 emojis = Emojis()
+

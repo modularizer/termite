@@ -49,3 +49,5 @@ def highlight_bash(lines: list[str]) -> list[str]:
     
     return styled_lines
 
+
+

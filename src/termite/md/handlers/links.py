@@ -22,3 +22,5 @@ def register_link_handlers(renderer):
     
     renderer.register_handler(r'!\[(?P<alt>.*?)\]\((?P<url>.*?)\)', image_handler)
 
+
+
